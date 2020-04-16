@@ -364,6 +364,7 @@ def parse_logs(logdir, since=None, whitelist_users=None):
     chat = []
     server = ServerStats()
     online_players = set()
+    date = None
 
     first_date = None
     for logname in sorted(os.listdir(logdir)):

@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Minecraft Server Log Statistics</title>
+
+		<!--  jQuery -->
+		<script type="text/javascript" src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+		
+		<!-- Latest compiled and minified CSS -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+		<!-- Optional theme -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap-theme.min.css">
+		<!-- Latest compiled and minified JavaScript -->
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+		
+		<!-- jQuery tablesorter plugin -->
+		<script src="https://cdn.jsdelivr.net/tablesorter/2.17.3/js/jquery.tablesorter.min.js"></script>
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/tablesorter/2.17.3/addons/pager/jquery.tablesorter.pager.css">
+		
+		<style type="text/css">
+		#player-stats td, #player-stats th {
+			vertical-align: middle !important;
+		}
+		
+		.avatar {
+			width: 32px;
+			height: 32px;
+			margin-right: 8px;
+		}
+		</style>
+		<script>
+		var columns = [
+			[".c-time-played", "Time played", true],
+			[".c-logins", "Logins", false],
+			[".c-login-time", "Time per login", false],
+			[".c-first-login", "First login", false],
+			[".c-last-login", "Last login", false],
+			[".c-longest-session", "Longest session", false],
+			[".c-deaths", "Deaths", false],
+			[".c-ragequits", "Rage quits", false],
+			[".c-achievements", "Achievements", false],
+			[".c-active-days", "Active days", false],
+			[".c-active-day-time", "Time per day", false],
+			[".c-messages", "Messages sent", false],
+			[".c-message-time", "Time per message", false]
+		];
+
+		function addPlaces() {
+			$(".c-place").each(function(index) {
+				$(this).text((index+1) + ".");
+			});
+		}
+		
+		var currentPage = "";
+		function goToPage(page) {
+			// make sure this page exists
+			if ($("#" + page).length == 0)
+				return false;
+			// make sure we set this page only once (recursion because of changing hash)
+			if (currentPage == page)
+				return true;
+			currentPage = page;
+			window.location.hash = "#" + page.replace(/^page-/, "");
+			
+			// hide all pages except this one
+			$(".page").hide();
+			$("#" + page).show();
+
+			// update the active/inactive links in the nav bar
+			$(".js-link").parent().filter("li").removeClass("active");
+			$(".js-link[data-page='" + page + "']").parent().filter("li").addClass("active");
+			return true;
+		}
+
+		$(document).ready(function() {
+			// try to go to page in the supplied url hash
+			// first try players page in case of that supplied page doesn't exist
+			var page = window.location.hash.substring(1);
+			goToPage("page-players");
+			if (page.length != 0)
+				goToPage("page-" + page);
+
+			// handler for links to pages
+			$(".js-link").each(function() {
+				$(this).click(function() {
+					goToPage($(this).data("page"));
+				});
+			});
+			
+			// handler for url hash hange to update page
+			$(window).bind("hashchange", function() {
+				if (!goToPage("page-" + window.location.hash.substr(1)))
+					goToPage("page-players");
+			});
+			
+			addPlaces();
+
+			columns.forEach(function(value, index, array) {
+				var label = $("<label></label>").attr("class", "checkbox");
+				var input = $("<input />").attr("type", "checkbox");
+				input.change(function() {
+					if(input.is(":checked"))
+						$(value[0]).show();
+					else
+						$(value[0]).hide();
+				});
+				input.attr("checked", value[2]);
+				if(!value[2])
+					$(value[0]).hide();
+
+				label.append(input);
+				label.append(value[1]);
+				$("#column-select").append(label);
+			});
+
+			$("#player-stats").tablesorter();
+			$("#player-stats").bind("sortEnd", addPlaces);
+		});
+		</script>
+	</head>
+
+	<body>
+		<nav class="navbar navbar-inverse">
+			<div class="container">
+				<div class="navbar-header">
+					<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+						<span class="sr-only">Toggle navigation</span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+					</button>
+				<a class="navbar-brand" href="#players">Minecraft Server Log Statistics</a>
+				</div>
+				<div id="navbar" class="navbar-collapse collapse">
+					<ul class="nav navbar-nav">
+						<li class="active"><a class="js-link" data-page="page-players" href="#players">Players</a></li>
+						<li>               <a class="js-link" data-page="page-server"  href="#server">Server</a></li>
+            
+					</ul>
+					<ul class="nav navbar-nav navbar-right">
+						<li><span class="navbar-text navbar-right">Last update: 2020-04-16 11:38:28</span></li>
+					</ul>
+				</div>
+			</div>
+		</nav>
+		<div class="container">
+			<div id="page-players" class="page row">
+				<div id="column-select" class="col-md-2">
+					<h4>Columns</h4>
+				</div>
+
+				<div class="col-md-10">
+					<table id="player-stats" class="table table-striped table-bordered tablesorter">
+						<thead>
+							<tr>
+								<th>#</th>
+								<th>Username</th>
+								<th class="col c-time-played">Time played</th>
+								<th class="col c-logins">Logins</th>
+								<th class="col c-login-time">Time per login</th>
+								<th class="col c-first-login">First login</th>
+								<th class="col c-last-login">Last login</th>
+								<th class="col c-longest-session">Longest session</th>
+								<th class="col c-deaths">Deaths</th>
+								<th class="col c-ragequits">Rage quits</th>
+								<th class="col c-achievements">Achievements</th>
+								<th class="col c-active-days">Active days</th>
+								<th class="col c-active-day-time">Time per day</th>
+								<th class="col c-messages">Messages sent</th>
+								<th class="col c-message-time">Time per message</th>
+							</tr>
+						</thead>
+						<tbody>
+							
+							<tr>
+								<td class="c-place"></td>
+								<td>
+									<a class="js-link" data-page="page-players-starbuck_man" href="#players-starbuck_man">
+										<img class="avatar" src="http://avatars.mapcrafter.org/head/starbuck_man/4" />starbuck_man
+									</a>
+								</td>
+								<td class="col c-time-played">16 days, 10h 45m 04s</td>
+								<td class="col c-logins">115</td>
+								<td class="col c-login-time">03h 25m 57s</td>
+								<td class="col c-first-login">2020-02-27 18:10:26</td>
+								<td class="col c-last-login">2020-04-15 16:59:35</td>
+								<td class="col c-longest-session">06h 42m 16s</td>
+								<td class="col c-deaths">2</td>
+								<td class="col c-ragequits">0</td>
+								<td class="col c-achievements">0</td>
+								<td class="col c-active-days">35</td>
+								<td class="col c-active-day-time">11h 16m 42s</td>
+								<td class="col c-messages">0</td>
+								<td class="col c-message-time"><div class='text-center'>-</div></td>
+							</tr>
+							
+							<tr>
+								<td class="c-place"></td>
+								<td>
+									<a class="js-link" data-page="page-players-lilstrbuk" href="#players-lilstrbuk">
+										<img class="avatar" src="http://avatars.mapcrafter.org/head/lilstrbuk/4" />lilstrbuk
+									</a>
+								</td>
+								<td class="col c-time-played">04 days, 11h 41m 21s</td>
+								<td class="col c-logins">132</td>
+								<td class="col c-login-time">00h 48m 56s</td>
+								<td class="col c-first-login">2020-03-19 12:57:22</td>
+								<td class="col c-last-login">2020-04-15 22:35:01</td>
+								<td class="col c-longest-session">04h 55m 38s</td>
+								<td class="col c-deaths">50</td>
+								<td class="col c-ragequits">1</td>
+								<td class="col c-achievements">0</td>
+								<td class="col c-active-days">28</td>
+								<td class="col c-active-day-time">03h 50m 45s</td>
+								<td class="col c-messages">0</td>
+								<td class="col c-message-time"><div class='text-center'>-</div></td>
+							</tr>
+							
+							<tr>
+								<td class="c-place"></td>
+								<td>
+									<a class="js-link" data-page="page-players-sly_zucchini" href="#players-sly_zucchini">
+										<img class="avatar" src="http://avatars.mapcrafter.org/head/sly_zucchini/4" />sly_zucchini
+									</a>
+								</td>
+								<td class="col c-time-played">04 days, 08h 22m 47s</td>
+								<td class="col c-logins">87</td>
+								<td class="col c-login-time">01h 11m 59s</td>
+								<td class="col c-first-login">2020-03-15 19:08:16</td>
+								<td class="col c-last-login">2020-04-13 19:56:58</td>
+								<td class="col c-longest-session">20h 01m 24s</td>
+								<td class="col c-deaths">51</td>
+								<td class="col c-ragequits">1</td>
+								<td class="col c-achievements">0</td>
+								<td class="col c-active-days">15</td>
+								<td class="col c-active-day-time">06h 57m 31s</td>
+								<td class="col c-messages">0</td>
+								<td class="col c-message-time"><div class='text-center'>-</div></td>
+							</tr>
+							
+							<tr>
+								<td class="c-place"></td>
+								<td>
+									<a class="js-link" data-page="page-players-starbuck225" href="#players-starbuck225">
+										<img class="avatar" src="http://avatars.mapcrafter.org/head/starbuck225/4" />starbuck225
+									</a>
+								</td>
+								<td class="col c-time-played">03 days, 10h 43m 24s</td>
+								<td class="col c-logins">69</td>
+								<td class="col c-login-time">01h 11m 56s</td>
+								<td class="col c-first-login">2020-02-27 19:25:08</td>
+								<td class="col c-last-login">2020-04-13 19:03:29</td>
+								<td class="col c-longest-session">05h 20m 35s</td>
+								<td class="col c-deaths">13</td>
+								<td class="col c-ragequits">0</td>
+								<td class="col c-achievements">0</td>
+								<td class="col c-active-days">26</td>
+								<td class="col c-active-day-time">03h 10m 54s</td>
+								<td class="col c-messages">0</td>
+								<td class="col c-message-time"><div class='text-center'>-</div></td>
+							</tr>
+							
+							<tr>
+								<td class="c-place"></td>
+								<td>
+									<a class="js-link" data-page="page-players-Shelb3ll" href="#players-Shelb3ll">
+										<img class="avatar" src="http://avatars.mapcrafter.org/head/Shelb3ll/4" />Shelb3ll
+									</a>
+								</td>
+								<td class="col c-time-played">01 days, 07h 58m 42s</td>
+								<td class="col c-logins">34</td>
+								<td class="col c-login-time">00h 56m 25s</td>
+								<td class="col c-first-login">2020-03-19 12:59:26</td>
+								<td class="col c-last-login">2020-04-10 19:25:53</td>
+								<td class="col c-longest-session">04h 57m 24s</td>
+								<td class="col c-deaths">7</td>
+								<td class="col c-ragequits">0</td>
+								<td class="col c-achievements">0</td>
+								<td class="col c-active-days">13</td>
+								<td class="col c-active-day-time">02h 27m 35s</td>
+								<td class="col c-messages">0</td>
+								<td class="col c-message-time"><div class='text-center'>-</div></td>
+							</tr>
+							
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<div id="page-server" class="page row">
+				<table class="table table-striped table-bordered">
+					<tr>
+						<th>Statistics since:</th>
+						<td>2020-02-27</td>
+					</tr>
+					<tr>
+						<th>Time played by all players:</th>
+						<td>30 days, 01h 31m 18s</td>
+					</tr>
+					<tr>
+						<th>Total players:</th>
+						<td>5</td>
+					</tr>
+					<tr>
+						<th>Maximum online players:</th>
+						<td>5 (2020-03-19 12:59:26)</td>
+					</tr>
+				</table>
+			</div>
+			<div id="page-chat" class="page row">
+				<table class="table">
+					
+				</table>
+			</div>
+			
+			<div id="page-players-starbuck_man" class="page page-player row">
+				<div class="col-md-8">
+					<h4>Player Statistics for starbuck_man</h4>
+					<table class="table table-striped table-bordered">
+						<tr>
+							<th>Time Played:</th>
+							<td>16 days, 10h 45m 04s</td>
+						</tr>
+						<tr>
+							<th>Logins:</th>
+							<td>115</td>
+						</tr>
+						<tr>
+							<th>Time per Login:</th>
+							<td>03h 25m 57s</td>
+						</tr>
+						<tr>
+							<th>First Login:</th>
+							<td>2020-02-27 18:10:26</td>
+						</tr>
+						<tr>
+							<th>Last Login:</th>
+							<td>2020-04-15 16:59:35</td>
+						</tr>
+						<tr>
+							<th>Longest Session:</th>
+							<td>06h 42m 16s</td>
+						</tr>
+						<tr>
+							<th>Active Days:</th>
+							<td>35</td>
+						</tr>
+						<tr>
+							<th>Time per Day:</th>
+							<td>11h 16m 42s</td>
+						</tr>
+						<tr>
+							<th>Messages Sent:</th>
+							<td>0</td>
+						</tr>
+						<tr>
+							<th>Time per Message:</th>
+							<td><div class='text-center'>-</div></td>
+						</tr>
+						<tr>
+							<th>Deaths:</th>
+							<td>2</td>
+						</tr>
+						
+						<tr>
+							<th>Types of Deaths:</th>
+							<td>
+								<table class="table table-striped table-bordered">
+									<tr>
+										<th>Count</th>
+										<th>Type of Death</th>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Was slain by Zombie</td>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Was shot by Skeleton</td>
+									</tr>
+									
+								</table>
+							</td>
+						</tr>
+						
+						<tr>
+							<th>Rage quits:</th>
+							<td>0</td>
+						</tr>
+						<tr>
+							<th>Achievements:</th>
+							<td>0 of 34</td>
+						</tr>
+						
+					</table>
+				</div>
+				<div class="col-md-4" style="text-align: center">
+					<img style="margin-top: 100px" src="http://avatars.mapcrafter.org/body/starbuck_man/8" />
+				</div>
+			</div>
+			
+			<div id="page-players-lilstrbuk" class="page page-player row">
+				<div class="col-md-8">
+					<h4>Player Statistics for lilstrbuk</h4>
+					<table class="table table-striped table-bordered">
+						<tr>
+							<th>Time Played:</th>
+							<td>04 days, 11h 41m 21s</td>
+						</tr>
+						<tr>
+							<th>Logins:</th>
+							<td>132</td>
+						</tr>
+						<tr>
+							<th>Time per Login:</th>
+							<td>00h 48m 56s</td>
+						</tr>
+						<tr>
+							<th>First Login:</th>
+							<td>2020-03-19 12:57:22</td>
+						</tr>
+						<tr>
+							<th>Last Login:</th>
+							<td>2020-04-15 22:35:01</td>
+						</tr>
+						<tr>
+							<th>Longest Session:</th>
+							<td>04h 55m 38s</td>
+						</tr>
+						<tr>
+							<th>Active Days:</th>
+							<td>28</td>
+						</tr>
+						<tr>
+							<th>Time per Day:</th>
+							<td>03h 50m 45s</td>
+						</tr>
+						<tr>
+							<th>Messages Sent:</th>
+							<td>0</td>
+						</tr>
+						<tr>
+							<th>Time per Message:</th>
+							<td><div class='text-center'>-</div></td>
+						</tr>
+						<tr>
+							<th>Deaths:</th>
+							<td>50</td>
+						</tr>
+						
+						<tr>
+							<th>Types of Deaths:</th>
+							<td>
+								<table class="table table-striped table-bordered">
+									<tr>
+										<th>Count</th>
+										<th>Type of Death</th>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Was fireballed by Ghast</td>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Was blown up by Creeper</td>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Was slain by Ravager</td>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Was slain by Shelb3ll</td>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Was slain by Zombie Pigman</td>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Was slain by Zombie</td>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Was slain by Slime</td>
+									</tr>
+									
+									<tr>
+										<td>2</td>
+										<td>Was slain by Cave Spider</td>
+									</tr>
+									
+									<tr>
+										<td>4</td>
+										<td>Tried to swim in lava</td>
+									</tr>
+									
+									<tr>
+										<td>5</td>
+										<td>Was slain by Enderman</td>
+									</tr>
+									
+									<tr>
+										<td>5</td>
+										<td>Burned to death</td>
+									</tr>
+									
+									<tr>
+										<td>6</td>
+										<td>Was shot by Skeleton</td>
+									</tr>
+									
+									<tr>
+										<td>21</td>
+										<td>Fell from a high place</td>
+									</tr>
+									
+								</table>
+							</td>
+						</tr>
+						
+						<tr>
+							<th>Rage quits:</th>
+							<td>1</td>
+						</tr>
+						<tr>
+							<th>Achievements:</th>
+							<td>0 of 34</td>
+						</tr>
+						
+					</table>
+				</div>
+				<div class="col-md-4" style="text-align: center">
+					<img style="margin-top: 100px" src="http://avatars.mapcrafter.org/body/lilstrbuk/8" />
+				</div>
+			</div>
+			
+			<div id="page-players-sly_zucchini" class="page page-player row">
+				<div class="col-md-8">
+					<h4>Player Statistics for sly_zucchini</h4>
+					<table class="table table-striped table-bordered">
+						<tr>
+							<th>Time Played:</th>
+							<td>04 days, 08h 22m 47s</td>
+						</tr>
+						<tr>
+							<th>Logins:</th>
+							<td>87</td>
+						</tr>
+						<tr>
+							<th>Time per Login:</th>
+							<td>01h 11m 59s</td>
+						</tr>
+						<tr>
+							<th>First Login:</th>
+							<td>2020-03-15 19:08:16</td>
+						</tr>
+						<tr>
+							<th>Last Login:</th>
+							<td>2020-04-13 19:56:58</td>
+						</tr>
+						<tr>
+							<th>Longest Session:</th>
+							<td>20h 01m 24s</td>
+						</tr>
+						<tr>
+							<th>Active Days:</th>
+							<td>15</td>
+						</tr>
+						<tr>
+							<th>Time per Day:</th>
+							<td>06h 57m 31s</td>
+						</tr>
+						<tr>
+							<th>Messages Sent:</th>
+							<td>0</td>
+						</tr>
+						<tr>
+							<th>Time per Message:</th>
+							<td><div class='text-center'>-</div></td>
+						</tr>
+						<tr>
+							<th>Deaths:</th>
+							<td>51</td>
+						</tr>
+						
+						<tr>
+							<th>Types of Deaths:</th>
+							<td>
+								<table class="table table-striped table-bordered">
+									<tr>
+										<th>Count</th>
+										<th>Type of Death</th>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Withered away</td>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Fell out of the world</td>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Drowned</td>
+									</tr>
+									
+									<tr>
+										<td>2</td>
+										<td>Hit the ground too hard</td>
+									</tr>
+									
+									<tr>
+										<td>2</td>
+										<td>Was slain by Enderman</td>
+									</tr>
+									
+									<tr>
+										<td>2</td>
+										<td>Was slain by Zombie</td>
+									</tr>
+									
+									<tr>
+										<td>2</td>
+										<td>Burned to death</td>
+									</tr>
+									
+									<tr>
+										<td>3</td>
+										<td>Was slain by Zombie Pigman</td>
+									</tr>
+									
+									<tr>
+										<td>3</td>
+										<td>Was slain by Spider</td>
+									</tr>
+									
+									<tr>
+										<td>6</td>
+										<td>Was blown up by Creeper</td>
+									</tr>
+									
+									<tr>
+										<td>10</td>
+										<td>Was shot by Skeleton</td>
+									</tr>
+									
+									<tr>
+										<td>18</td>
+										<td>Fell from a high place</td>
+									</tr>
+									
+								</table>
+							</td>
+						</tr>
+						
+						<tr>
+							<th>Rage quits:</th>
+							<td>1</td>
+						</tr>
+						<tr>
+							<th>Achievements:</th>
+							<td>0 of 34</td>
+						</tr>
+						
+					</table>
+				</div>
+				<div class="col-md-4" style="text-align: center">
+					<img style="margin-top: 100px" src="http://avatars.mapcrafter.org/body/sly_zucchini/8" />
+				</div>
+			</div>
+			
+			<div id="page-players-starbuck225" class="page page-player row">
+				<div class="col-md-8">
+					<h4>Player Statistics for starbuck225</h4>
+					<table class="table table-striped table-bordered">
+						<tr>
+							<th>Time Played:</th>
+							<td>03 days, 10h 43m 24s</td>
+						</tr>
+						<tr>
+							<th>Logins:</th>
+							<td>69</td>
+						</tr>
+						<tr>
+							<th>Time per Login:</th>
+							<td>01h 11m 56s</td>
+						</tr>
+						<tr>
+							<th>First Login:</th>
+							<td>2020-02-27 19:25:08</td>
+						</tr>
+						<tr>
+							<th>Last Login:</th>
+							<td>2020-04-13 19:03:29</td>
+						</tr>
+						<tr>
+							<th>Longest Session:</th>
+							<td>05h 20m 35s</td>
+						</tr>
+						<tr>
+							<th>Active Days:</th>
+							<td>26</td>
+						</tr>
+						<tr>
+							<th>Time per Day:</th>
+							<td>03h 10m 54s</td>
+						</tr>
+						<tr>
+							<th>Messages Sent:</th>
+							<td>0</td>
+						</tr>
+						<tr>
+							<th>Time per Message:</th>
+							<td><div class='text-center'>-</div></td>
+						</tr>
+						<tr>
+							<th>Deaths:</th>
+							<td>13</td>
+						</tr>
+						
+						<tr>
+							<th>Types of Deaths:</th>
+							<td>
+								<table class="table table-striped table-bordered">
+									<tr>
+										<th>Count</th>
+										<th>Type of Death</th>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Was slain by Elder Guardian</td>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Was blown up by Creeper</td>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Was shot by lilstrbuk</td>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Burned to death</td>
+									</tr>
+									
+									<tr>
+										<td>2</td>
+										<td>Was slain by Vindicator</td>
+									</tr>
+									
+									<tr>
+										<td>3</td>
+										<td>Fell from a high place</td>
+									</tr>
+									
+									<tr>
+										<td>4</td>
+										<td>Was slain by Guardian</td>
+									</tr>
+									
+								</table>
+							</td>
+						</tr>
+						
+						<tr>
+							<th>Rage quits:</th>
+							<td>0</td>
+						</tr>
+						<tr>
+							<th>Achievements:</th>
+							<td>0 of 34</td>
+						</tr>
+						
+					</table>
+				</div>
+				<div class="col-md-4" style="text-align: center">
+					<img style="margin-top: 100px" src="http://avatars.mapcrafter.org/body/starbuck225/8" />
+				</div>
+			</div>
+			
+			<div id="page-players-Shelb3ll" class="page page-player row">
+				<div class="col-md-8">
+					<h4>Player Statistics for Shelb3ll</h4>
+					<table class="table table-striped table-bordered">
+						<tr>
+							<th>Time Played:</th>
+							<td>01 days, 07h 58m 42s</td>
+						</tr>
+						<tr>
+							<th>Logins:</th>
+							<td>34</td>
+						</tr>
+						<tr>
+							<th>Time per Login:</th>
+							<td>00h 56m 25s</td>
+						</tr>
+						<tr>
+							<th>First Login:</th>
+							<td>2020-03-19 12:59:26</td>
+						</tr>
+						<tr>
+							<th>Last Login:</th>
+							<td>2020-04-10 19:25:53</td>
+						</tr>
+						<tr>
+							<th>Longest Session:</th>
+							<td>04h 57m 24s</td>
+						</tr>
+						<tr>
+							<th>Active Days:</th>
+							<td>13</td>
+						</tr>
+						<tr>
+							<th>Time per Day:</th>
+							<td>02h 27m 35s</td>
+						</tr>
+						<tr>
+							<th>Messages Sent:</th>
+							<td>0</td>
+						</tr>
+						<tr>
+							<th>Time per Message:</th>
+							<td><div class='text-center'>-</div></td>
+						</tr>
+						<tr>
+							<th>Deaths:</th>
+							<td>7</td>
+						</tr>
+						
+						<tr>
+							<th>Types of Deaths:</th>
+							<td>
+								<table class="table table-striped table-bordered">
+									<tr>
+										<th>Count</th>
+										<th>Type of Death</th>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Was slain by Wolf</td>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Was shot by Skeleton</td>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Was blown up by Creeper</td>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Was slain by Ravager</td>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Was slain by Zombie Pigman</td>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Was shot by lilstrbuk</td>
+									</tr>
+									
+									<tr>
+										<td>1</td>
+										<td>Was slain by Zombie</td>
+									</tr>
+									
+								</table>
+							</td>
+						</tr>
+						
+						<tr>
+							<th>Rage quits:</th>
+							<td>0</td>
+						</tr>
+						<tr>
+							<th>Achievements:</th>
+							<td>0 of 34</td>
+						</tr>
+						
+					</table>
+				</div>
+				<div class="col-md-4" style="text-align: center">
+					<img style="margin-top: 100px" src="http://avatars.mapcrafter.org/body/Shelb3ll/8" />
+				</div>
+			</div>
+			
+		</div>
+	</body>
+</html>
